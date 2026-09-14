@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { connectedComponents, connectingPaths, hasJoinedOrientations } from "./connectivity";
+import { countFreeEnds, resolveFreeEnds, strokeCells } from "./termination";
 
 export const recipeSchema = z.object({
   algorithm: z.enum(["meanders", "combs", "terraces", "frames", "enclosure", "scatter", "bridge"]),
@@ -13,6 +14,7 @@ export const recipeSchema = z.object({
   lengthVariation: z.number().min(0).max(100).default(45),
   pathSteps: z.number().int().min(1).max(12).default(5),
   branchReach: z.number().int().min(1).max(10).default(4),
+  freeEnds: z.number().int().min(0).max(6).default(2),
   alternateShare: z.number().min(0).max(100).default(50),
   wallBands: z.number().int().min(2).max(9).default(4),
   enclosureMargin: z.number().int().min(1).max(10).default(3),
@@ -41,7 +43,7 @@ export type PaletteGroup = "primary" | "secondary" | "neutral";
 export type Stroke = { a: Point; b: Point; context: number; paletteGroup: PaletteGroup; kind: "seed" | "connection" };
 export type Cell = Point & { born: number; context: number; paletteGroup: PaletteGroup };
 export type Context = { viewDirection: Orientation; quarterTurn: boolean; depthOrigin: number; depthOffset: number };
-export type Scene = { cells: Cell[]; strokes: Stroke[]; contexts: Context[]; recipe: Recipe; bounds: Bounds };
+export type Scene = { cells: Cell[]; strokes: Stroke[]; contexts: Context[]; recipe: Recipe; bounds: Bounds; freeEnds: number };
 export type Bounds = { x: number; y: number; width: number; height: number };
 export type Triangle = { points: [GridPoint, GridPoint, GridPoint]; depth: number; receiver: Point; plane: string; family: Family; context: number; paletteGroup: PaletteGroup };
 export type Face = { id: string; plane: string; d: string; family: Family; context: number; paletteGroup: PaletteGroup; area: number; rings: GridPoint[][] };
@@ -52,7 +54,7 @@ export const defaultRecipe: Recipe = {
   algorithm: "meanders", seed: "ISOMETRY-037", density: 60, clustering: 65, length: 7, height: 17,
   spread: 20, branching: 40, loops: 65, irregularity: 45, vertical: 60, depth: 25,
   allowIslands: true, pocketCount: 3, pocketContrast: 65, layerGap: 3, lengthVariation: 45,
-  pathSteps: 5, branchReach: 4, alternateShare: 50, wallBands: 4, enclosureMargin: 3, bridgeBeams: 2, terminalTiers: 3,
+  pathSteps: 5, branchReach: 4, freeEnds: 2, alternateShare: 50, wallBands: 4, enclosureMargin: 3, bridgeBeams: 2, terminalTiers: 3,
   symmetry: 0, thickness: 1, orientation: "above", orientationChange: "reverse-turn",
 };
 
@@ -119,17 +121,11 @@ export function generate(recipe: Recipe): Scene {
   function addStroke(a: Point, b: Point, context: number, kind: Stroke["kind"], paletteGroup: PaletteGroup) {
     if (cellKey(a) === cellKey(b)) return;
     const born = strokes.length;
-    strokes.push({ a, b, context, kind, paletteGroup });
-    const xmin = Math.min(a.x, b.x), xmax = Math.max(a.x, b.x) + T;
-    const ymin = Math.min(a.y, b.y), ymax = Math.max(a.y, b.y) + T;
-    const zmin = Math.min(a.z, b.z), zmax = Math.max(a.z, b.z) + T;
-    for (let x = xmin; x < xmax; x++) {
-      for (let y = ymin; y < ymax; y++) {
-        for (let z = zmin; z < zmax; z++) {
-          const key = `${context}:${x},${y},${z}`;
-          if (!occupancy.has(key)) occupancy.set(key, { x, y, z, born, context, paletteGroup });
-        }
-      }
+    const stroke = { a, b, context, kind, paletteGroup };
+    strokes.push(stroke);
+    for (const cell of strokeCells(stroke, T)) {
+      const key = `${context}:${cell.x},${cell.y},${cell.z}`;
+      if (!occupancy.has(key)) occupancy.set(key, { ...cell, born, context, paletteGroup });
     }
   }
   const seeds: Stroke[] = [];
@@ -342,11 +338,12 @@ export function generate(recipe: Recipe): Scene {
       }
     }
   }
-  for (const stroke of [...seeds, ...connections]) {
+  const placed = [...seeds, ...connections].filter(stroke => {
     const differing = Number(stroke.a.x !== stroke.b.x) + Number(stroke.a.y !== stroke.b.y) + Number(stroke.a.z !== stroke.b.z);
     if (differing > 1) throw new Error("A construction stroke must follow one grid axis.");
-    if (differing === 1) addStroke(stroke.a, stroke.b, stroke.context, stroke.kind, stroke.paletteGroup);
-  }
+    return differing === 1;
+  });
+  for (const stroke of resolveFreeEnds(placed, T, recipe.freeEnds, recipe.branchReach)) addStroke(stroke.a, stroke.b, stroke.context, stroke.kind, stroke.paletteGroup);
   let joint: Point | undefined;
   if (!recipe.allowIslands) {
     function connect(cells: Cell[]) {
@@ -392,7 +389,7 @@ export function generate(recipe: Recipe): Scene {
   });
   const xs = projected.map(point => point.x), ys = projected.map(point => point.y);
   const x = Math.min(0, ...xs) - 60, y = Math.min(0, ...ys) - 60;
-  return { cells, strokes, contexts, recipe, bounds: { x, y, width: Math.max(0, ...xs) - x + 60, height: Math.max(0, ...ys) - y + 60 } };
+  return { cells, strokes, contexts, recipe, bounds: { x, y, width: Math.max(0, ...xs) - x + 60, height: Math.max(0, ...ys) - y + 60 }, freeEnds: countFreeEnds(strokes, T) };
 }
 
 function signedArea(a: GridPoint, b: GridPoint, c: GridPoint) {

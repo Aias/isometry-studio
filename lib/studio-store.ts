@@ -164,7 +164,7 @@ export function redo() {
 export function report(message: string) { snapshot = { ...snapshot, message }; emit(); }
 export function checkGeometry() {
   const issues = validateScene(snapshot.scene);
-  report(issues.length ? issues.join(" ") : `Grid and surface checks passed. ${snapshot.scene.recipe.allowIslands ? "Detached structures are allowed." : "All structures have solid connections."} Openings expose their inner surfaces.`);
+  report(issues.length ? issues.join(" ") : `Grid and surface checks passed. ${snapshot.scene.freeEnds} of ${snapshot.scene.strokes.length * 2} bar ends are free. ${snapshot.scene.recipe.allowIslands ? "Detached structures are allowed." : "All structures have solid connections."} Openings expose their inner surfaces.`);
   return issues;
 }
 function keydown(event: KeyboardEvent) {
