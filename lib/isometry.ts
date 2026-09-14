@@ -3,7 +3,7 @@ import { connectedComponents, connectingPaths, hasJoinedOrientations } from "./c
 import { countFreeEnds, resolveFreeEnds, strokeCells } from "./termination";
 
 export const recipeSchema = z.object({
-  algorithm: z.enum(["meanders", "combs", "terraces", "frames", "enclosure", "scatter", "bridge"]),
+  algorithm: z.enum(["meanders", "combs", "terraces", "frames", "enclosure", "bridge"]),
   seed: z.string().max(80),
   density: z.number().min(10).max(100),
   clustering: z.number().min(0).max(100).default(65),
@@ -64,7 +64,6 @@ export const algorithms = [
   { id: "terraces", name: "Terraced bands", description: "Long ledges, repeated steps, and narrow slots." },
   { id: "frames", name: "Frame studies", description: "Nested openings and suspended rectangular frames." },
   { id: "enclosure", name: "City of walls", description: "A dense interior held between enclosing walls." },
-  { id: "scatter", name: "Open field", description: "Scattered fragments and unexpected connections." },
   { id: "bridge", name: "Bridged structures", description: "Two compact structures joined by long beams across a framed wall." },
 ];
 

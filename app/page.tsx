@@ -66,7 +66,7 @@ const controlGroups: { name: string; controls: { key: NumericRecipeKey; label: s
 function applicableControl(key: NumericRecipeKey, recipe: Recipe) {
   if (["wallBands", "enclosureMargin"].includes(key)) return recipe.algorithm === "enclosure";
   if (["bridgeBeams", "terminalTiers"].includes(key)) return recipe.algorithm === "bridge";
-  if (key === "pathSteps") return ["meanders", "scatter", "enclosure"].includes(recipe.algorithm);
+  if (key === "pathSteps") return ["meanders", "enclosure"].includes(recipe.algorithm);
   if (key === "alternateShare") return recipe.orientation === "both" && !["enclosure", "bridge"].includes(recipe.algorithm);
   if (key === "vertical") return !["combs", "terraces"].includes(recipe.algorithm);
   if (["length", "lengthVariation"].includes(key)) return recipe.algorithm !== "combs";
@@ -76,7 +76,7 @@ function applicableControl(key: NumericRecipeKey, recipe: Recipe) {
 const algorithmOptions: { value: Recipe["algorithm"]; label: string }[] = [
   { value: "meanders", label: "Interwoven paths" }, { value: "combs", label: "Vertical combs" },
   { value: "terraces", label: "Terraced bands" }, { value: "frames", label: "Frame studies" },
-  { value: "enclosure", label: "City of walls" }, { value: "scatter", label: "Open field" },
+  { value: "enclosure", label: "City of walls" },
   { value: "bridge", label: "Bridged structures" },
 ];
 const speedOptions = [.25, .5, 1, 2, 4].map(value => ({ value: String(value), label: `${value}×` }));
