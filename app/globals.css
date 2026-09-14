@@ -73,7 +73,6 @@ button:focus-visible,input:focus-visible { outline:2px solid var(--ring); outlin
 .choice-field + .choice-field { margin-top:20px; }
 .range-after-choice { padding:24px 0; }
 .switch-row { display:flex; align-items:center; justify-content:space-between; font-size:14px; }
-.second-palette { display:flex; align-items:center; gap:10px; padding:15px 7px 0; color:#727b69; font-size:12px; }
 .canvas-top i { font-style:normal; color:#aab09f; padding:0 8px; }
 .canvas-tools { display:flex; gap:6px; }
 .canvas-stage { padding:0 18px; }
@@ -93,6 +92,7 @@ button:focus-visible,input:focus-visible { outline:2px solid var(--ring); outlin
 .playback-status { display:flex; align-items:center; gap:14px; font-size:12px; color:#687560; }
 .playback-status>span { min-width:108px; }
 .speed-control { width:64px; height:32px; font-size:12px; box-shadow:none; }
+.playback-status .switch-row { gap:8px; font-size:12px; white-space:nowrap; }
 .feedback { padding:12px 24px; background:#e8eee2; color:#37533e; display:flex; align-items:center; justify-content:space-between; gap:12px; border-top:1px solid #d0dcc6; font-size:13px; line-height:1.5; }
 .feedback button { border:0; background:none; color:inherit; flex-shrink:0; }
 .export-options { display:grid; gap:12px; }

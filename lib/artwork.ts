@@ -4,7 +4,7 @@ import { drawScene, mergeSurfaces, strokePath, unit } from "./isometry";
 import type { Drawing, Face, Family, PaletteGroup, Scene } from "./isometry";
 
 export const appearanceSchema = z.object({
-  palette: z.enum(["graphite", "city", "teal", "tower", "ink", "bridge"]),
+  palette: z.enum(["graphite", "harbor", "verdigris", "kiln", "dusk"]),
   treatment: z.enum(["flat", "hatch", "lines"]),
   paper: z.enum(["ivory", "white", "gray"]),
   lineWeight: z.number().min(.4).max(2.4),
@@ -16,21 +16,19 @@ export const appearanceSchema = z.object({
   depthShading: z.boolean().default(true),
   shadowAmount: z.number().min(0).max(100).default(20),
   grid: z.boolean(),
-  live: z.boolean(),
 });
 export type Appearance = z.infer<typeof appearanceSchema>;
 type Colors = { x: string; y: string; z: string };
-export type Palette = { id: Appearance["palette"]; name: string; note: string; primary: Colors; secondary: Colors; ink: string };
-const graphite: Palette = { id: "graphite", name: "Graphite", note: "Paper, pencil & hatching", primary: { x: "#c6c2b7", y: "#40413c", z: "#eee9de" }, secondary: { x: "#78796e", y: "#d7d2c6", z: "#3d3f37" }, ink: "#33362f" };
+export type Palette = { id: Appearance["palette"]; name: string; primary: Colors; secondary: Colors; ink: string };
+const graphite: Palette = { id: "graphite", name: "Graphite", primary: { x: "#c6c2b7", y: "#40413c", z: "#eee9de" }, secondary: { x: "#78796e", y: "#d7d2c6", z: "#3d3f37" }, ink: "#33362f" };
 export const palettes: Palette[] = [
   graphite,
-  { id: "bridge", name: "Bridged structures", note: "Teal, yellow, navy / red, orange, charcoal", primary: { x: "#177a75", y: "#e9b93e", z: "#102c4a" }, secondary: { x: "#c6412b", y: "#e99435", z: "#333a39" }, ink: "#203738" },
-  { id: "city", name: "City of walls", note: "Yellow, teal, navy / red, orange, charcoal", primary: { x: "#102c4a", y: "#177a75", z: "#e9b93e" }, secondary: { x: "#c6412b", y: "#e99435", z: "#333a39" }, ink: "#203738" },
-  { id: "teal", name: "Ulam’s staircase", note: "Teal ink on paper", primary: { x: "#0c746f", y: "#87b5a6", z: "#eee9de" }, secondary: { x: "#71a99c", y: "#164f4c", z: "#d0d8c4" }, ink: "#204943" },
-  { id: "tower", name: "Tower", note: "Red-orange & umber", primary: { x: "#483c2c", y: "#7d5634", z: "#d15d30" }, secondary: { x: "#b74627", y: "#ba7b48", z: "#44392d" }, ink: "#493b2b" },
-  { id: "ink", name: "Violet studies", note: "Fineliner & layered hatching", primary: { x: "#41304f", y: "#a89bae", z: "#e7dfda" }, secondary: { x: "#9f87a1", y: "#493758", z: "#786583" }, ink: "#44364d" },
+  { id: "harbor", name: "Harbor", primary: { x: "#102c4a", y: "#177a75", z: "#e9b93e" }, secondary: { x: "#c6412b", y: "#e99435", z: "#333a39" }, ink: "#203738" },
+  { id: "verdigris", name: "Verdigris", primary: { x: "#0c746f", y: "#87b5a6", z: "#eee9de" }, secondary: { x: "#71a99c", y: "#164f4c", z: "#d0d8c4" }, ink: "#204943" },
+  { id: "kiln", name: "Kiln", primary: { x: "#483c2c", y: "#7d5634", z: "#d15d30" }, secondary: { x: "#b74627", y: "#ba7b48", z: "#44392d" }, ink: "#493b2b" },
+  { id: "dusk", name: "Dusk", primary: { x: "#41304f", y: "#a89bae", z: "#e7dfda" }, secondary: { x: "#9f87a1", y: "#493758", z: "#786583" }, ink: "#44364d" },
 ];
-export const defaultAppearance: Appearance = { palette: "graphite", treatment: "hatch", paper: "ivory", lineWeight: .85, hatchSpacing: 5, inkTexture: true, inkAmount: 18, paperTexture: true, paperAmount: 15, depthShading: true, shadowAmount: 20, grid: true, live: false };
+export const defaultAppearance: Appearance = { palette: "graphite", treatment: "hatch", paper: "ivory", lineWeight: .85, hatchSpacing: 5, inkTexture: true, inkAmount: 18, paperTexture: true, paperAmount: 15, depthShading: true, shadowAmount: 20, grid: true };
 export const paperColors = { ivory: "#f0ecdf", white: "#fbfbf7", gray: "#dedfd8" };
 export function getPalette(id: Appearance["palette"]) { return palettes.find(palette => palette.id === id) ?? graphite; }
 export function paletteColors(palette: Palette, group: PaletteGroup): Colors {
@@ -45,7 +43,8 @@ export function stageAt(progress: number) {
 }
 function escapeXml(value: string) { return value.replace(/[<>&"']/g, character => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" })[character] ?? character); }
 
-export function renderArtwork(scene: Scene, completed: Drawing, appearance: Appearance, progress = 1000, includeGrid = appearance.grid) {
+export type Playback = { progress: number; live: boolean };
+export function renderArtwork(scene: Scene, completed: Drawing, appearance: Appearance, { progress, live }: Playback = { progress: 1000, live: false }, includeGrid = appearance.grid) {
   const palette = getPalette(appearance.palette), paper = paperColors[appearance.paper], bounds = scene.bounds;
   const width = Number(bounds.width.toFixed(3)), height = Number(bounds.height.toFixed(3));
   const seeds = scene.strokes.filter(stroke => stroke.kind === "seed"), connections = scene.strokes.filter(stroke => stroke.kind === "connection");
@@ -79,7 +78,7 @@ export function renderArtwork(scene: Scene, completed: Drawing, appearance: Appe
   const shaded = new Set(shadeOrder.slice(0, shadedCount).map(face => face.id));
   function fillFor(face: Face) {
     const colors = paletteColors(palette, face.paletteGroup);
-    const filled = appearance.treatment !== "lines" && (progress >= 1000 || shaded.has(face.id) || appearance.live && progress >= 400);
+    const filled = appearance.treatment !== "lines" && (progress >= 1000 || shaded.has(face.id) || live && progress >= 400);
     return !filled ? paper : appearance.treatment === "hatch" ? `url(#hatch-${face.paletteGroup}-${face.family})` : colors[face.family];
   }
   const fills = new Map<string, string>();
@@ -92,7 +91,7 @@ export function renderArtwork(scene: Scene, completed: Drawing, appearance: Appe
   const textured = appearance.inkTexture && appearance.inkAmount > 0;
   if (textured && surfaces.length) definitions.push(inkDefinitions(palette.ink, scene.recipe.seed));
   if (appearance.depthShading && drawing.shadows.length) definitions.push(`<filter id="shadow-softness" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation=".6"/></filter><clipPath id="shadow-surfaces"><path d="${surfaces.map(face => face.d).join("")}" clip-rule="evenodd"/></clipPath>`);
-  const shadeProgress = appearance.live && progress >= 400 ? 1 : Math.max(0, Math.min(1, (progress - 700) / 300));
+  const shadeProgress = live && progress >= 400 ? 1 : Math.max(0, Math.min(1, (progress - 700) / 300));
   const shadows = appearance.depthShading && appearance.shadowAmount > 0 && shadeProgress > 0
     ? `<g clip-path="url(#shadow-surfaces)"><g data-depth-shading="shadows" filter="url(#shadow-softness)" fill="${palette.ink}" opacity="${appearance.shadowAmount / 100 * .55 * shadeProgress}">${drawing.shadows.map(shadow => `<path d="${shadow.d}" fill-rule="evenodd" opacity="${shadow.strength}"/>`).join("")}</g></g>` : "";
   const faces = surfaces.map((face, index) => `<path data-face="${face.id}" d="${face.d}" fill="${fills.get(face.id) ?? paper}" fill-rule="evenodd"/>${textured ? inkSurface(face, index, palette.ink, appearance.lineWeight, appearance.inkAmount) : ""}<path d="${face.d}" fill="none" stroke="${palette.ink}" stroke-width="${appearance.lineWeight}" stroke-linejoin="round"/>`).join("");
