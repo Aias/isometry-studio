@@ -9,8 +9,8 @@ The construction timeline reveals seed lines, connections, solid geometry, and s
 Use Node.js 22.13 or later.
 
 ```sh
-npm run install:ci
-npm run dev -- --port 4317
+pnpm install
+pnpm dev
 ```
 
 The development command prints the local URL. The app needs no account or application database. Its saved drawing belongs to that browser and origin.
@@ -28,9 +28,9 @@ The generator covers automated construction. Direct line editing and lasso-based
 ## Validation
 
 ```sh
-npx tsc --noEmit
-npm run lint
-npm run build
+pnpm typecheck
+pnpm lint
+pnpm build
 ```
 
 The core geometry has been checked with single cubes, merged blocks, thick openings, point-touching face boundaries, and deterministic replay across all algorithms, orientations, and thickness settings. Browser checks cover drawing controls, autosave, playback, and exports.
