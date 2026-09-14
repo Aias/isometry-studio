@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
-import { Box, Shuffle, Grid3X3, Download, Play, Pause, SkipBack, SkipForward, Undo2, Redo2, StepBack, StepForward, ZoomIn, ZoomOut, Maximize, CircleHelp, CheckCheck, X } from "lucide-react";
+import { Box, Shuffle, Grid3X3, Download, Play, Pause, Route, SkipBack, SkipForward, Undo2, Redo2, StepBack, StepForward, ZoomIn, ZoomOut, Maximize, CircleHelp, CheckCheck, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,7 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { algorithms } from "@/lib/isometry";
 import type { Recipe } from "@/lib/isometry";
 import { palettes, paperColors, renderArtwork, stageAt } from "@/lib/artwork";
-import { applyAlgorithm, changeAppearance, changeRecipe, checkGeometry, finishAdjustment, getServerSnapshot, getSnapshot, playPause, previewAppearance, previewRecipe, redo, report, reroll, seek, setLive, setSpeed, stepConstruction, subscribe, undo } from "@/lib/studio-store";
+import { applyAlgorithm, changeAppearance, changeRecipe, checkGeometry, finishAdjustment, getServerSnapshot, getSnapshot, playPause, previewAppearance, previewRecipe, redo, report, reroll, seek, setLive, setSeedOverlay, setSpeed, stepConstruction, subscribe, undo } from "@/lib/studio-store";
 import { exportArtwork } from "@/lib/export-artwork";
 import { faviconUrl } from "@/lib/favicon";
 
@@ -99,7 +99,7 @@ function Help() {
 }
 export default function Home() {
   const state = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const { recipe, appearance, progress, speed, live } = state.document;
+  const { recipe, appearance, progress, speed, live, seedOverlay } = state.document;
   const [exporting, setExporting] = useState(false);
   const [exportGrid, setExportGrid] = useState(false);
   const [helpExport, setHelpExport] = useState(false);
@@ -132,8 +132,8 @@ export default function Home() {
       <section className="control-section"><div className="switch-row"><label htmlFor="paper-texture">Paper texture</label><Switch id="paper-texture" checked={appearance.paperTexture} onCheckedChange={paperTexture => changeAppearance({ paperTexture })}/></div><p className="field-note">A faint paper grain across the drawing.</p>{appearance.paperTexture && <Range label="Paper grain" description="Controls the visibility of the paper texture." value={appearance.paperAmount} min={0} max={100} onChange={paperAmount => previewAppearance({ paperAmount })}/>}</section>
       </TabsContent></Tabs>
       <div className="panel-footer"><Button className="generate-button" onClick={reroll}><Shuffle/>New drawing</Button><button className="check-button" onClick={checkGeometry}><CheckCheck size={15}/>Check geometry</button></div>
-    </aside><section className="drawing-area" style={{ background: paperColors[appearance.paper] }}><div className="canvas-top"><span>UNTITLED STUDY <i>/</i> {recipe.seed}</span><div className="canvas-tools"><IconButton label={appearance.grid ? "Hide grid (G)" : "Show grid (G)"} active={appearance.grid} onClick={() => changeAppearance({ grid: !appearance.grid })}><Grid3X3/></IconButton></div></div>
-      <ArtworkView svg={renderArtwork(state.scene, state.drawing, appearance, { progress, live })} paper={paperColors[appearance.paper]}/>
+    </aside><section className="drawing-area" style={{ background: paperColors[appearance.paper] }}><div className="canvas-top"><span>UNTITLED STUDY <i>/</i> {recipe.seed}</span><div className="canvas-tools"><IconButton label={seedOverlay ? "Hide seed lines" : "Show seed lines"} active={seedOverlay} onClick={() => setSeedOverlay(!seedOverlay)}><Route/></IconButton><IconButton label={appearance.grid ? "Hide grid (G)" : "Show grid (G)"} active={appearance.grid} onClick={() => changeAppearance({ grid: !appearance.grid })}><Grid3X3/></IconButton></div></div>
+      <ArtworkView svg={renderArtwork(state.scene, state.drawing, appearance, { progress, live }, appearance.grid, seedOverlay)} paper={paperColors[appearance.paper]}/>
       <div className="canvas-bottom"><span>{state.scene.strokes.filter(stroke => stroke.kind === "seed").length} seeds · {state.scene.strokes.length} strokes · {state.scene.freeEnds} free ends · {state.drawing.faces.length} surface groups</span><span>{recipe.orientation === "both" ? "TWO ORIENTATIONS" : recipe.orientation === "below" ? "ALTERNATE ORIENTATION" : "PRIMARY ORIENTATION"}</span></div>
       {state.message && <div className="feedback" role="status"><span>{state.message}</span><button aria-label="Dismiss message" onClick={() => report("")}><X size={15}/></button></div>}
       <div className="transport"><div className="playback-buttons"><IconButton label="Start of construction" onClick={() => seek(0)}><SkipBack/></IconButton><IconButton label="Step backward" onClick={() => stepConstruction(-1)}><StepBack/></IconButton><Button className="play-button" size="icon" aria-label={state.playing ? "Pause construction" : "Play construction"} onClick={playPause}>{state.playing ? <Pause/> : <Play/>}</Button><IconButton label="Step forward" onClick={() => stepConstruction(1)}><StepForward/></IconButton><IconButton label="Finish drawing" onClick={() => seek(1000)}><SkipForward/></IconButton></div><div className="transport-line"><div className="transport-labels">{[{ name: "Seeds", value: 179 }, { name: "Connect", value: 399 }, { name: "Resolve", value: 699 }, { name: "Shade", value: 1000 }].map(stage => <button key={stage.name} onClick={() => seek(stage.value)}>{stage.name}</button>)}</div><Slider aria-label="Construction progress" min={0} max={1000} step={1} value={[progress]} onValueChange={next => { const value = firstValue(next); if (value !== undefined) seek(value); }}/></div><div className="playback-status"><span>{stageAt(progress)}</span><Select value={String(speed)} items={speedOptions} onValueChange={value => setSpeed(Number(value))}><SelectTrigger aria-label="Playback speed" className="speed-control"><SelectValue/></SelectTrigger><SelectContent>{speedOptions.map(option => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent></Select><div className="switch-row"><label htmlFor="live-shading">Live shading</label><Switch id="live-shading" checked={live} onCheckedChange={setLive}/></div></div></div>

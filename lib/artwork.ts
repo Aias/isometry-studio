@@ -44,7 +44,7 @@ export function stageAt(progress: number) {
 function escapeXml(value: string) { return value.replace(/[<>&"']/g, character => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" })[character] ?? character); }
 
 export type Playback = { progress: number; live: boolean };
-export function renderArtwork(scene: Scene, completed: Drawing, appearance: Appearance, { progress, live }: Playback = { progress: 1000, live: false }, includeGrid = appearance.grid) {
+export function renderArtwork(scene: Scene, completed: Drawing, appearance: Appearance, { progress, live }: Playback = { progress: 1000, live: false }, includeGrid = appearance.grid, includeSeeds = false) {
   const palette = getPalette(appearance.palette), paper = paperColors[appearance.paper], bounds = scene.bounds;
   const width = Number(bounds.width.toFixed(3)), height = Number(bounds.height.toFixed(3));
   const seeds = scene.strokes.filter(stroke => stroke.kind === "seed"), connections = scene.strokes.filter(stroke => stroke.kind === "connection");
@@ -67,6 +67,7 @@ export function renderArtwork(scene: Scene, completed: Drawing, appearance: Appe
   const gridWidth = Math.sqrt(3) * unit;
   definitions.push(`<pattern id="iso-grid" width="${gridWidth}" height="${unit}" patternUnits="userSpaceOnUse"><path d="M0,0L${gridWidth},${unit}M0,${unit}L${gridWidth},0M0,0V${unit}M${gridWidth / 2},0V${unit}" fill="none" stroke="${appearance.paper === "gray" ? "#ffffff" : palette.ink}" stroke-opacity="${appearance.paper === "gray" ? .75 : .08}" stroke-width=".6"/></pattern>`);
   const grid = includeGrid ? `<rect x="${bounds.x}" y="${bounds.y}" width="${width}" height="${height}" fill="url(#iso-grid)"/>` : "";
+  const seedOverlay = includeSeeds ? `<g data-seed-overlay="lines" fill="none" stroke="#d0342c" stroke-width="${appearance.lineWeight + 1.2}" stroke-linecap="round" opacity=".5">${seeds.map(stroke => `<path d="${strokePath(stroke, scene)}"/>`).join("")}</g>` : "";
   const seedProgress = Math.min(1, progress / 180) * seeds.length;
   const connectionProgress = Math.max(0, Math.min(1, (progress - 180) / 220)) * connections.length;
   const skeleton = progress < 700 ? [
@@ -96,5 +97,5 @@ export function renderArtwork(scene: Scene, completed: Drawing, appearance: Appe
     ? `<g clip-path="url(#shadow-surfaces)"><g data-depth-shading="shadows" filter="url(#shadow-softness)" fill="${palette.ink}" opacity="${appearance.shadowAmount / 100 * .55 * shadeProgress}">${drawing.shadows.map(shadow => `<path d="${shadow.d}" fill-rule="evenodd" opacity="${shadow.strength}"/>`).join("")}</g></g>` : "";
   const faces = surfaces.map((face, index) => `<path data-face="${face.id}" d="${face.d}" fill="${fills.get(face.id) ?? paper}" fill-rule="evenodd"/>${textured ? inkSurface(face, index, palette.ink, appearance.lineWeight, appearance.inkAmount) : ""}<path d="${face.d}" fill="none" stroke="${palette.ink}" stroke-width="${appearance.lineWeight}" stroke-linejoin="round"/>`).join("");
   const grain = appearance.paperTexture && appearance.paperAmount > 0 ? paperGrain(bounds, scene.recipe.seed, appearance.paperAmount) : "";
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${bounds.x} ${bounds.y} ${width} ${height}" role="img" aria-label="Isometric drawing, ${stageAt(progress).toLowerCase()}"><title>Isometry · ${escapeXml(scene.recipe.seed)}</title><metadata>${escapeXml(JSON.stringify({ recipe: scene.recipe, appearance, progress }))}</metadata><defs>${definitions.join("")}</defs><rect x="${bounds.x}" y="${bounds.y}" width="${width}" height="${height}" fill="${paper}"/>${grain}${grid}${skeleton}${faces}${shadows}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${bounds.x} ${bounds.y} ${width} ${height}" role="img" aria-label="Isometric drawing, ${stageAt(progress).toLowerCase()}"><title>Isometry · ${escapeXml(scene.recipe.seed)}</title><metadata>${escapeXml(JSON.stringify({ recipe: scene.recipe, appearance, progress }))}</metadata><defs>${definitions.join("")}</defs><rect x="${bounds.x}" y="${bounds.y}" width="${width}" height="${height}" fill="${paper}"/>${grain}${grid}${skeleton}${faces}${shadows}${seedOverlay}</svg>`;
 }

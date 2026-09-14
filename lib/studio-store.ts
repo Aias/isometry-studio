@@ -4,10 +4,10 @@ import { appearanceSchema, defaultAppearance } from "./artwork";
 import type { Drawing, Recipe, Scene } from "./isometry";
 import type { Appearance } from "./artwork";
 
-export const documentSchema = z.object({ recipe: recipeSchema, appearance: appearanceSchema, progress: z.number().min(0).max(1000), speed: z.number().min(.25).max(4), live: z.boolean().default(false) });
+export const documentSchema = z.object({ recipe: recipeSchema, appearance: appearanceSchema, progress: z.number().min(0).max(1000), speed: z.number().min(.25).max(4), live: z.boolean().default(false), seedOverlay: z.boolean().default(false) });
 export type StudioDocument = z.infer<typeof documentSchema>;
 const storageKey = "isometry-studio-drawing";
-const initialDocument: StudioDocument = { recipe: defaultRecipe, appearance: defaultAppearance, progress: 1000, speed: 1, live: false };
+const initialDocument: StudioDocument = { recipe: defaultRecipe, appearance: defaultAppearance, progress: 1000, speed: 1, live: false, seedOverlay: false };
 const initialScene = generate(defaultRecipe);
 type Snapshot = { document: StudioDocument; scene: Scene; drawing: Drawing; playing: boolean; saved: string; message: string; past: StudioDocument[]; future: StudioDocument[] };
 const initialSnapshot: Snapshot = {
@@ -118,6 +118,11 @@ export function setSpeed(speed: number) {
 export function setLive(live: boolean) {
   stop();
   snapshot = { ...snapshot, document: { ...snapshot.document, live } };
+  save();
+  emit();
+}
+export function setSeedOverlay(seedOverlay: boolean) {
+  snapshot = { ...snapshot, document: { ...snapshot.document, seedOverlay } };
   save();
   emit();
 }
