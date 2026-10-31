@@ -190,13 +190,13 @@ function registerTools() {
   const properties = {
     seed: { type: "string", maxLength: 80 }, algorithm: { type: "string", enum: recipeSchema.shape.algorithm.options },
     density: { type: "number", minimum: 10, maximum: 100 }, clustering: { type: "number", minimum: 0, maximum: 100 }, orientation: { type: "string", enum: ["above", "below", "both"] },
-    orientationChange: { type: "string", enum: recipeSchema.shape.orientationChange.removeDefault().options },
+    orientationChange: { type: "string", enum: recipeSchema.shape.orientationChange.unwrap().options },
   };
   const tool: ModelTool = {
     name: "generate_isometric_drawing", description: "Generate a complete isometric drawing using the current settings plus any supplied recipe changes. The visible canvas updates and the drawing is saved locally.",
     inputSchema: { type: "object", properties, additionalProperties: false }, annotations: { readOnlyHint: false, untrustedContentHint: false },
     async execute(input) {
-      const patch = recipeSchema.pick({ seed: true, algorithm: true, density: true, clustering: true, orientation: true, orientationChange: true }).partial().strict().parse(input);
+      const patch = recipeSchema.pick({ seed: true, algorithm: true, density: true, orientation: true }).extend({ clustering: recipeSchema.shape.clustering.unwrap(), orientationChange: recipeSchema.shape.orientationChange.unwrap() }).partial().strict().parse(input);
       changeRecipe(patch);
       await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
       return { seed: snapshot.document.recipe.seed, strokes: snapshot.scene.strokes.length, surfaceGroups: snapshot.drawing.faces.length, progress: snapshot.document.progress };

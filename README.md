@@ -6,7 +6,7 @@ The construction timeline reveals seed lines, connections, solid geometry, and s
 
 ## Run locally
 
-Use Node.js 22.13 or later.
+Use Node.js 26 or later.
 
 ```sh
 pnpm install
